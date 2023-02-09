@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from tkinter import *
+from tkinter import messagebox
 from PIL import Image, ImageTk
 
 matriz = [
@@ -112,6 +113,16 @@ def nuevoTablero():
 
 def visualizar():
     global cap, pantalla, amarillo, fila, columna, segundos, verde2, verde1, pos1, pos2
+    
+    count_matriz = np.array(matriz)
+    gana_jugador_1 = count_matriz == 2
+    gana_jugador_2 = count_matriz == 1
+    if np.count_nonzero(gana_jugador_1) == 0:
+        messagebox.showinfo("Ganador!", "Gana el jugador 1")
+        pantalla.destroy()
+    elif np.count_nonzero(gana_jugador_2) == 0:
+        messagebox.showerror("Ganador!", "Gana el jugador 2")
+        pantalla.destroy()
 
     tablero.delete(amarillo)
     lblnota.config(text="Esperando movimiento...")
@@ -119,16 +130,30 @@ def visualizar():
     ret, frame = cap.read()
     blue_lower = np.array([102, 100, 145], np.uint8)
     blue_upper = np.array([123, 255, 255], np.uint8)
-    if ret:
-        frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        blue = cv2.inRange(frameHSV, blue_lower, blue_upper)
-        blue = blue[0:480, 0:480]
 
-        im = Image.fromarray(blue)
+    lower_red = np.array([0,100,145])
+    upper_red = np.array([1,255,255])
+    lower_red = np.array([170,100,145])
+    upper_red = np.array([180,255,255])
+
+    if ret:
+        color = None
+        if jugador == 2:
+            frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            color = cv2.inRange(frameHSV, blue_lower, blue_upper)
+            color = color[0:480, 0:480]
+        else:
+            frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            mask0 = cv2.inRange(frameHSV, lower_red, upper_red)
+            mask1 = cv2.inRange(frameHSV, lower_red, upper_red)
+            color = mask0+mask1
+
+        im = Image.fromarray(color)
         img = ImageTk.PhotoImage(image=im)
+        img = cv2.flip(img,1) #Si falla comenta la linea
         lblVideo.configure(image=img)
 
-        blue8 = cv2.resize(blue, (8, 8), interpolation=cv2.INTER_AREA)
+        blue8 = cv2.resize(color, (8, 8), interpolation=cv2.INTER_AREA)
         posicionmax = np.where(blue8 == np.amax(blue8))
         i = posicionmax[0][0]
         j = posicionmax[1][0]
@@ -141,7 +166,7 @@ def visualizar():
         fila = i
         columna = j
 
-        if segundos < 100:
+        if segundos < 60:
             if verde1 is None:
                 amarillo = tablero.create_rectangle(j * tamano, i * tamano, (j + 1) * tamano, (i + 1) * tamano,
                                                     fill="yellow")
@@ -219,27 +244,80 @@ def validarMovimiento(initialPosition, finalPosition, turno):
                                              ][finalPosition[1]] = turno
                     matriz[initialPosition[0]
                                              ][initialPosition[1]] = 0
-                    return "Movimiento válido, ficha comida. Actualizando el tablero", turno, True
+                    return "Movimiento válido, ficha comida. Actualizando el tablero", swapTurn(turno), True
                 elif matriz[casilla_intermedia[0]][casilla_intermedia[1]] == 0:
                     return "Movimiento inválido, no puedes mover más de una casilla a menos que comas una ficha enemiga", turno, False
                 else:
                     return "Movimiento inválido, la ficha que intentas comer es de tu equipo", turno, False
 
+
+def ir_al_juego():
+    pantalla_juego.pack(fill='both',expand=1)
+    pantalla_inicio.forget()
+    visualizar()
+
 pantalla = Tk()
+
 pantalla.title("Juego de Damas")
-pantalla.geometry("960x960")
+
+bg_image = PhotoImage(file="checkers.png")
+pantalla_inicio = Frame(pantalla, bg="#507af8")
+
+""" label_bg_image = Label(pantalla_inicio, image= bg_image)
+label_bg_image.pack() """
+pantalla_juego = Frame(pantalla,bg= '#507af8')
+
+pantalla_inicio_titulo = Label(pantalla_inicio, text="Proyecto de procesamiento digital de imágenes",font= ('New Times Roman', 20),bg= '#507af8')
+subtitulo_inicio = Label(pantalla_inicio, text="Juego de damas usando visión artificial",font= ('New Times Roman', 15),bg= '#507af8')
+pantalla_juego_titulo = Label(pantalla_juego, text="Juego de damas")
+
+pantalla_inicio_titulo.pack()
+subtitulo_inicio.pack()
+pantalla_juego_titulo.pack()
+
+#image_tablero = Image.open("tablero_gui.PNG")
+#image_tablero = image_tablero.resize((300,300), Image.ANTIALIAS)
+#image_tablero = ImageTk.PhotoImage(image_tablero)
+frameCnt = 5
+frames = [PhotoImage(file='juego.gif',format = 'gif -index %i' %(i)) for i in range(frameCnt)]
+def update(ind):
+
+    frame = frames[ind]
+    ind += 1
+    if ind == frameCnt:
+        ind = 0
+    label_imagen.configure(image=frame)
+    pantalla_inicio.after(1000, update, ind)
+label_imagen = Label(pantalla_inicio, width=300, height=300)
+label_imagen.pack(side=LEFT)
+pantalla_inicio.after(0, update, 0)
+info_frame = Frame(pantalla_inicio ,bg= '#507af8', padx=50)
+
+desarrolladores_titulo = Label(info_frame, text="Desarrolladores",font= ('New Times Roman', 15, 'bold'),bg= '#507af8')
+desarrollador_1 = Label(info_frame, text="○ María Rivera",font= ('New Times Roman', 10),bg= '#507af8')
+desarrollador_2 = Label(info_frame, text="○ Danny Montenegro",font= ('New Times Roman', 10),bg= '#507af8')
+desarrolladores_titulo.pack(side=TOP)
+desarrollador_1.pack()
+desarrollador_2.pack()
+btn_a_juego = Button(info_frame, text="Jugar",command=ir_al_juego, bg='#95e1e9', activebackground="#95e1e9", )
+btn_salir = Button(info_frame, text="Salir", command=pantalla.destroy, bg='#95e1e9', activebackground="#95e1e9")
+btn_a_juego.pack(side=LEFT)
+btn_salir.pack(side=RIGHT)
+info_frame.pack(side=LEFT)
+
+pantalla_inicio.pack(fill='both', expand=1)
 
 jugador = 1
 
-lblturno = Label(pantalla, text="Turno del jugador: "+ str(jugador), pady=30, font= ('New Times Roman', 30))
+lblturno = Label(pantalla_juego, text="Turno del jugador: "+ str(jugador), pady=30, font= ('New Times Roman', 30),bg= '#507af8')
 lblturno.pack(side=TOP)
 
-lblnota= Label(pantalla, text="Esperando movimiento...", font= ('New Times Roman', 30))
+lblnota= Label(pantalla_juego, text="Esperando movimiento...", font= ('New Times Roman', 15),bg= '#507af8')
 lblnota.pack(side=BOTTOM)
 
-tablero = Canvas(pantalla, width=480, height=480)
+tablero = Canvas(pantalla_juego, width=480, height=480)
 crearTablero(tablero, matriz)
-tablero.pack(side=LEFT)
+tablero.pack()
 
 amarillo = None
 fila = None
@@ -252,8 +330,19 @@ verde2 = None
 
 cap = cv2.VideoCapture(0)
 
-lblVideo = Label(pantalla, width=480, height=480)
-lblVideo.pack(side=RIGHT)
+lblVideo = Label(pantalla_juego, width=480, height=480)
+#lblVideo.pack(side=RIGHT)
+def rendirse():
+    global cap
+    cap.release()
+    respuesta = messagebox.askyesno("Question", "Jugador {},¿Seguro que quieres rendirte?".format(jugador))
+    if respuesta:
+        messagebox.showinfo("Ganador!", "Gana el jugador {}".format(swapTurn(jugador)))
+        pantalla.destroy()
+    cap = cv2.VideoCapture(0)
+    visualizar()
 
-visualizar()
+btn_rendirse = Button(pantalla_juego, text="Rendirse", command=rendirse, bg='#95e1e9', activebackground="#95e1e9")
+btn_rendirse.pack(side=TOP)
+
 pantalla.mainloop()
