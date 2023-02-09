@@ -128,6 +128,8 @@ def visualizar():
     lblnota.config(text="Esperando movimiento...")
 
     ret, frame = cap.read()
+    frame = cv2.flip(frame,1)
+    
     blue_lower = np.array([102, 100, 145], np.uint8)
     blue_upper = np.array([123, 255, 255], np.uint8)
 
@@ -150,7 +152,6 @@ def visualizar():
 
         im = Image.fromarray(color)
         img = ImageTk.PhotoImage(image=im)
-        img = cv2.flip(img,1) #Si falla comenta la linea
         lblVideo.configure(image=img)
 
         blue8 = cv2.resize(color, (8, 8), interpolation=cv2.INTER_AREA)
@@ -260,7 +261,6 @@ pantalla = Tk()
 
 pantalla.title("Juego de Damas")
 
-bg_image = PhotoImage(file="checkers.png")
 pantalla_inicio = Frame(pantalla, bg="#507af8")
 
 """ label_bg_image = Label(pantalla_inicio, image= bg_image)
@@ -331,7 +331,8 @@ verde2 = None
 cap = cv2.VideoCapture(0)
 
 lblVideo = Label(pantalla_juego, width=480, height=480)
-#lblVideo.pack(side=RIGHT)
+#lblVideo.pack()
+
 def rendirse():
     global cap
     cap.release()
