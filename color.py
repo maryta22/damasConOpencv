@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from tkinter import *
 from tkinter import messagebox
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 
 matriz = [
     [1, 0, 1, 0, 1, 0, 1, 0],
@@ -128,27 +128,25 @@ def visualizar():
     lblnota.config(text="Esperando movimiento...")
 
     ret, frame = cap.read()
+    print(np.shape(frame))
     frame = cv2.flip(frame,1)
     
-    blue_lower = np.array([102, 100, 145], np.uint8)
-    blue_upper = np.array([123, 255, 255], np.uint8)
+    lower1 = np.array([119, 29, 104], np.uint8)
+    upper1 = np.array([161, 56, 172], np.uint8)
 
-    lower_red = np.array([0,100,145])
-    upper_red = np.array([1,255,255])
-    lower_red = np.array([170,100,145])
-    upper_red = np.array([180,255,255])
+    lower2 = np.array([71, 71, 104], np.uint8)
+    upper2 = np.array([84, 133, 192], np.uint8)
 
     if ret:
         color = None
         if jugador == 2:
             frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            color = cv2.inRange(frameHSV, blue_lower, blue_upper)
+            color = cv2.inRange(frameHSV, lower1, upper1)
             color = color[0:480, 0:480]
         else:
             frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            mask0 = cv2.inRange(frameHSV, lower_red, upper_red)
-            mask1 = cv2.inRange(frameHSV, lower_red, upper_red)
-            color = mask0+mask1
+            color = cv2.inRange(frameHSV, lower2, upper2)
+            color = color[0:480, 0:480]
 
         im = Image.fromarray(color)
         img = ImageTk.PhotoImage(image=im)
@@ -317,7 +315,7 @@ lblnota.pack(side=BOTTOM)
 
 tablero = Canvas(pantalla_juego, width=480, height=480)
 crearTablero(tablero, matriz)
-tablero.pack()
+tablero.pack(side = LEFT)
 
 amarillo = None
 fila = None
@@ -331,7 +329,7 @@ verde2 = None
 cap = cv2.VideoCapture(0)
 
 lblVideo = Label(pantalla_juego, width=480, height=480)
-#lblVideo.pack()
+lblVideo.pack(side = RIGHT)
 
 def rendirse():
     global cap
@@ -344,6 +342,6 @@ def rendirse():
     visualizar()
 
 btn_rendirse = Button(pantalla_juego, text="Rendirse", command=rendirse, bg='#95e1e9', activebackground="#95e1e9")
-btn_rendirse.pack(side=TOP)
+btn_rendirse.pack()
 
 pantalla.mainloop()
